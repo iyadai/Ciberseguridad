@@ -1,49 +1,34 @@
 import socket
+from datetime import datetime
 
+# Tu lista de objetivos
 PUERTOS_CRITICOS = {
     21: "FTP",
     22: "SSH",
-    25: "SMTP",
     80: "HTTP",
     443: "HTTPS",
-    3306: "MySQL",
-    3389: "RDP"
+    3306: "MySQL"
 }
+
+def guardar_hallazgo(ip, puerto, servicio, banner):
+    # La 'a' significa 'Append' (añadir sin borrar lo anterior)
+    with open("auditoria_red.txt", "a") as archivo:
+        tiempo = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        linea = f"[{tiempo}] IP: {ip} | Puerto: {puerto} ({servicio}) | Banner: {banner}\n"
+        archivo.write(linea)
 
 def obtener_banner(ip, puerto):
     try:
-        # 1. Creamos el socket (el "teléfono")
-        # AF_INET = IPv4, SOCK_STREAM = TCP
-        cliente = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        
-        # 2. Ponemos un tiempo límite (timeout) de 1 segundos que deberia ser suficiente en este caso
-        cliente.settimeout(1)
-    
-        # 3. Intentamos conectar
-        cliente.connect((ip, puerto))
-        banner = cliente.recv(1024)
-        
-        # 4. Recibimos la respuesta (el banner)
-        return banner.decode().strip()
-        
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(1)
+        sock.connect((ip, puerto))
+        banner = sock.recv(1024).decode().strip()
+        return banner
     except:
         return None
     finally:
-        # 5. Cerramos la conexión
-        cliente.close()
+        sock.close()
 
-def main():
-    print("--- [ Escaneo de Puertos Automatizado ] ---")
-    objetivo = input("IP a escanear (ej: 127.0.0.1): ")
-    
-    print(f"\n[*] Iniciando auditoría en {objetivo}...")
-    
-    for puerto, servicio in PUERTOS_CRITICOS.items():
-        banner = obtener_banner(objetivo, puerto)
-        if banner:
-            print(f"[+] Puerto {puerto} ({servicio}) ABIERTO: {banner}")
-        else:
-            print(f"[-] Puerto {puerto} ({servicio}) cerrado o sin respuesta.")
-
-if __name__ == "__main__":
-    main()
+# En tu bucle 'for' dentro de main(), solo tienes que llamar a la función:
+# if banner:
+#     guardar_hallazgo(objetivo, puerto, servicio, banner)
